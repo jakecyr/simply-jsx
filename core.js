@@ -17,7 +17,7 @@ socket.on('reload', () => {
   window.location.reload();
 });
 
-function JustJSXApp(htmlElementID) {
+function SimplyJSX(htmlElementID) {
   const element = window.document.getElementById(htmlElementID);
 
   return {
@@ -59,5 +59,5 @@ function createElement(tagName, attrs = {}, ...children) {
   return elem;
 }
 
-global.JustJSXApp = JustJSXApp;
+global.SimplyJSX = SimplyJSX;
 global.createElement = createElement;

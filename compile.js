@@ -12,17 +12,17 @@ const { Server } = require('socket.io');
 /** @type {Server} */
 let io = null;
 
-const JUST_JS_FILENAME = 'core.js';
-const JUST_JS_FILE = path.join(__dirname, JUST_JS_FILENAME);
+const CORE_JS_FILENAME = 'core.js';
+const CORE_JS_FILE = path.join(__dirname, CORE_JS_FILENAME);
 const BUNDLE_FILENAME = 'bundle.js';
 
-const CONFIG_FILE = path.resolve('just.json');
+const CONFIG_FILE = path.resolve('simply.json');
 const BABEL_EXEC_PATH = path.join(__dirname, './node_modules/.bin/babel');
 const BABEL_CONFIG_FILE_PATH = path.join(__dirname, '.babelrc');
 const BROWSERIFY_EXEC_PATH = path.join(__dirname, './node_modules/.bin/browserify');
 
 if (!existsSync(CONFIG_FILE)) {
-  throw new Error('just.json config file missing');
+  throw new Error('simply.json config file missing');
 }
 
 const CONFIG_SETTINGS = require(CONFIG_FILE);
@@ -75,13 +75,13 @@ const startLocalServer = () => {
 const compileIndexHTML = async () => {
   const html = await fs.readFile(INDEX_HTML_FILE);
   const $ = cheerio.load(html);
-  $('body').append(`<script src="${JUST_JS_FILENAME}"></script>`);
+  $('body').append(`<script src="${CORE_JS_FILENAME}"></script>`);
   $('body').append(`<script src="${BUNDLE_FILENAME}" defer async></script>`);
   await fs.writeFile(getDistFilePath('index.html'), $.root().html());
 };
 
 const compileCore = async () => {
-  execSync(`${BROWSERIFY_EXEC_PATH} -o ${getDistFilePath(JUST_JS_FILENAME)} ${JUST_JS_FILE}`);
+  execSync(`${BROWSERIFY_EXEC_PATH} -o ${getDistFilePath(CORE_JS_FILENAME)} ${CORE_JS_FILE}`);
 };
 
 const bundleJSX = async () => {
@@ -118,7 +118,7 @@ watch(SRC_DIR, { recursive: true }, async (event, name) => {
   console.log('Change detected');
   notifyOfChange();
 
-  if (!existsSync(getDistFilePath(JUST_JS_FILENAME))) {
+  if (!existsSync(getDistFilePath(CORE_JS_FILENAME))) {
     await compileCore();
   }
 

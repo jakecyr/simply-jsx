@@ -1,5 +1,5 @@
 {
-  "name": "just-jsx",
+  "name": "simply-jsx",
   "version": "0.0.1",
   "description": "Simple transpiler for JSX without React",
   "main": "compile.js",
