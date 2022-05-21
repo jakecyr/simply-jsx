@@ -1,9 +1,13 @@
 {
   "name": "simply-jsx",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Simple transpiler for JSX without React",
   "main": "compile.js",
   "bin": "compile.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jakecyr/simply-jsx.git"
+  },
   "scripts": {
     "start": "node dist/index.js",
     "dev": "node compile.js",
