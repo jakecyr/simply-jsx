@@ -19,8 +19,8 @@ A simple transpiler for JSX without React. Features include:
      "staticFiles": "public"
    }
    ```
-
-4. Add a script to your package.json file:
+4. Create an index.html file in your staticFiles folder (folder specified in simply.json)
+5. Add a script to your package.json file:
 
    ```json
    "scripts": {
@@ -28,4 +28,4 @@ A simple transpiler for JSX without React. Features include:
    }
    ```
 
-5. Run `npm start`
+6. Run `npm start`
