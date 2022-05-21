@@ -1,4 +1,5 @@
-// @ts-check
+#!/usr/bin/env node
+
 const { default: watch } = require('node-watch');
 const path = require('path');
 const fs = require('fs-extra');
@@ -6,65 +7,139 @@ const cheerio = require('cheerio');
 const express = require('express');
 const { execSync } = require('child_process');
 const { existsSync } = require('fs-extra');
+const { Server } = require('socket.io');
 
-const app = express();
-const port = 3000;
+/** @type {Server} */
+let io = null;
 
-app.use(express.static(path.join(__dirname, '/dist'))).listen(port);
+const JUST_JS_FILENAME = 'base.js';
+const JUST_JS_FILE = path.join(__dirname, JUST_JS_FILENAME);
+const BUNDLE_FILENAME = 'bundle.js';
+
+const CONFIG_FILE = path.resolve('just.json');
+const BABEL_EXEC_PATH = path.join(__dirname, './node_modules/.bin/babel');
+const BABEL_CONFIG_FILE_PATH = path.join(__dirname, '.babelrc');
+const BROWSERIFY_EXEC_PATH = path.join(__dirname, './node_modules/.bin/browserify');
+
+if (!existsSync(CONFIG_FILE)) {
+  throw new Error('just.json config file missing');
+}
+
+const CONFIG_SETTINGS = require(CONFIG_FILE);
+
+if (!CONFIG_SETTINGS.build) {
+  throw new Error(`Missing 'build' option in config file`);
+}
+
+if (!CONFIG_SETTINGS.build) {
+  throw new Error(`Missing 'build' option in config file`);
+}
+
+if (!CONFIG_SETTINGS.staticFiles) {
+  throw new Error(`Missing 'staticFiles' option in config file`);
+}
+
+const DIST_DIR = path.resolve(CONFIG_SETTINGS.build);
+const SRC_DIR = path.resolve(CONFIG_SETTINGS.source);
+const PUBLIC_DIR = path.resolve(CONFIG_SETTINGS.staticFiles);
+const INDEX_HTML_FILE = path.join(PUBLIC_DIR, 'index.html');
+
+if (!existsSync(DIST_DIR)) {
+  fs.mkdirSync(DIST_DIR);
+}
+
+const notifyOfChange = () => {
+  if (io) {
+    io.emit('change');
+  }
+};
+
+const reload = () => {
+  if (io) {
+    io.emit('reload');
+  }
+};
+
+const getDistFilePath = (srcFileName) => path.join(DIST_DIR, srcFileName);
+
+const startLocalServer = () => {
+  const app = express();
+  const port = process.env.PORT || 3000;
+  const server = app.use(express.static(DIST_DIR)).listen(port);
+  io = new Server();
+
+  io.on('connection', () => {
+    console.log('connection established');
+  });
+
+  io.listen(server);
+
+  return app;
+};
 
 const compileIndexHTML = async () => {
-  const html = await fs.readFile('public/index.html');
+  const html = await fs.readFile(INDEX_HTML_FILE);
   const $ = cheerio.load(html);
-  $('body').append(`<script src="base.js"></script>`);
-  $('body').append(`<script src="bundle.js" defer async></script>`);
-  await fs.writeFile('dist/index.html', $.root().html());
+  $('body').append(`<script src="${JUST_JS_FILENAME}"></script>`);
+  $('body').append(`<script src="${BUNDLE_FILENAME}" defer async></script>`);
+  await fs.writeFile(getDistFilePath('index.html'), $.root().html());
 };
 
 const compileBaseJS = async () => {
-  execSync(`./node_modules/.bin/babel -d dist src/base.jsx`);
+  execSync(`${BROWSERIFY_EXEC_PATH} -o ${getDistFilePath(JUST_JS_FILENAME)} ${JUST_JS_FILE}`);
 };
 
 const bundleJSX = async () => {
-  execSync(`./node_modules/.bin/babel -d jsxTemp src/**/*.jsx`);
-  execSync(`./node_modules/.bin/browserify jsxTemp/index.js -o dist/bundle.js`);
+  execSync(`${BABEL_EXEC_PATH} --config-file ${BABEL_CONFIG_FILE_PATH} -d jsxTemp src/**/*.jsx`);
+  execSync(`${BROWSERIFY_EXEC_PATH} -o ${getDistFilePath(BUNDLE_FILENAME)} jsxTemp/index.js`);
   await fs.rm('jsxTemp', { recursive: true, force: true });
 };
 
-watch('public', { recursive: true }, async (event, name) => {
-  if (!existsSync('dist')) {
-    fs.mkdirSync('dist');
+watch(PUBLIC_DIR, { recursive: true }, async (event, name) => {
+  notifyOfChange();
+
+  if (!existsSync(DIST_DIR)) {
+    await fs.mkdir(DIST_DIR);
   }
 
-  const resolvedFilePath = path.resolve(name);
-  const resolvedDistPath = path.resolve(name.replace('public/', 'dist/'));
+  const resolvedSrcFilePath = path.resolve(name);
+  const resolvedDistFilePath = path.resolve(name.replace(PUBLIC_DIR + '/', DIST_DIR + '/'));
 
-  if (name === 'public/index.html') {
+  if (name === INDEX_HTML_FILE) {
     await compileIndexHTML();
   } else {
-    await fs.copyFile(resolvedFilePath, resolvedDistPath);
+    await fs.copyFile(resolvedSrcFilePath, resolvedDistFilePath);
   }
 
-  if (name !== 'public/index.html' && !existsSync('dist/index.html')) {
-    await compileIndexHTML();
-  }
-});
-
-watch('src', { recursive: true }, async (event, name) => {
-  if (!existsSync('dist/base.js')) {
-    await compileBaseJS();
-  }
-
-  if (!existsSync('dist/bundle.js')) {
-    await bundleJSX();
-  }
-
-  if (!existsSync('dist/index.html')) {
+  if (name !== INDEX_HTML_FILE && !existsSync(getDistFilePath('index.html'))) {
     await compileIndexHTML();
   }
 
-  if (name === 'src/index.jsx') {
-    await bundleJSX();
-  } else if (name === 'src/base.jsx') {
+  reload();
+});
+
+watch(SRC_DIR, { recursive: true }, async (event, name) => {
+  notifyOfChange();
+
+  if (!existsSync(getDistFilePath(JUST_JS_FILENAME))) {
     await compileBaseJS();
   }
+
+  if (!existsSync(getDistFilePath('index.html'))) {
+    await compileIndexHTML();
+  }
+
+  await bundleJSX();
+
+  reload();
 });
+
+(async () => {
+  try {
+    await compileBaseJS();
+    await compileIndexHTML();
+    startLocalServer();
+  } catch (error) {
+    console.error(error);
+  }
+})();

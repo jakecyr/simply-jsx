@@ -1,3 +1,22 @@
+// @ts-check
+
+require('socket.io-client');
+
+const { io } = require('socket.io-client');
+
+const socket = io({});
+
+socket.connect();
+
+socket.on('change', () => {
+  console.log('Change detected. Rebuilding...');
+});
+
+socket.on('reload', () => {
+  console.log('Rebuilt. Reloading...');
+  window.location.reload();
+});
+
 function JSXApp(htmlElementID) {
   const element = window.document.getElementById(htmlElementID);
 
@@ -25,11 +44,12 @@ function createElement(tagName, attrs = {}, ...children) {
 
   elem = Object.assign(elem, attrs);
 
-  const proxy = new Proxy(attrs, {
-    set: (target, p, value) => {
-      console.log(target, p, value);
-    },
-  });
+  // const proxy = new Proxy(attrs, {
+  //   set: (target, p, value) => {
+  //     console.log(target, p, value);
+  //     return true;
+  //   },
+  // });
 
   for (const child of children) {
     if (Array.isArray(child)) elem.append(...child);
@@ -38,3 +58,6 @@ function createElement(tagName, attrs = {}, ...children) {
 
   return elem;
 }
+
+global.JSXApp = JSXApp;
+global.createElement = createElement;
