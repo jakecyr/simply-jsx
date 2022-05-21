@@ -1,6 +1,6 @@
 {
   "name": "simply-jsx",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Simple transpiler for JSX without React",
   "main": "compile.js",
   "bin": "compile.js",
