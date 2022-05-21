@@ -12,7 +12,7 @@ const { Server } = require('socket.io');
 /** @type {Server} */
 let io = null;
 
-const JUST_JS_FILENAME = 'base.js';
+const JUST_JS_FILENAME = 'core.js';
 const JUST_JS_FILE = path.join(__dirname, JUST_JS_FILENAME);
 const BUNDLE_FILENAME = 'bundle.js';
 
@@ -56,6 +56,7 @@ const notifyOfChange = () => {
 
 const reload = () => {
   if (io) {
+    console.log('Reloading client...');
     io.emit('reload');
   }
 };
@@ -67,13 +68,7 @@ const startLocalServer = () => {
   const port = process.env.PORT || 3000;
   const server = app.use(express.static(DIST_DIR)).listen(port);
   io = new Server();
-
-  io.on('connection', () => {
-    console.log('connection established');
-  });
-
   io.listen(server);
-
   return app;
 };
 
@@ -85,7 +80,7 @@ const compileIndexHTML = async () => {
   await fs.writeFile(getDistFilePath('index.html'), $.root().html());
 };
 
-const compileBaseJS = async () => {
+const compileCore = async () => {
   execSync(`${BROWSERIFY_EXEC_PATH} -o ${getDistFilePath(JUST_JS_FILENAME)} ${JUST_JS_FILE}`);
 };
 
@@ -96,6 +91,7 @@ const bundleJSX = async () => {
 };
 
 watch(PUBLIC_DIR, { recursive: true }, async (event, name) => {
+  console.log('Change detected');
   notifyOfChange();
 
   if (!existsSync(DIST_DIR)) {
@@ -119,10 +115,11 @@ watch(PUBLIC_DIR, { recursive: true }, async (event, name) => {
 });
 
 watch(SRC_DIR, { recursive: true }, async (event, name) => {
+  console.log('Change detected');
   notifyOfChange();
 
   if (!existsSync(getDistFilePath(JUST_JS_FILENAME))) {
-    await compileBaseJS();
+    await compileCore();
   }
 
   if (!existsSync(getDistFilePath('index.html'))) {
@@ -136,7 +133,7 @@ watch(SRC_DIR, { recursive: true }, async (event, name) => {
 
 (async () => {
   try {
-    await compileBaseJS();
+    await compileCore();
     await compileIndexHTML();
     startLocalServer();
   } catch (error) {

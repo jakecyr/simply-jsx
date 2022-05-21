@@ -1,7 +1,7 @@
 {
   "name": "just-jsx",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "Simple transpiler for JSX without React",
   "main": "compile.js",
   "bin": "compile.js",
   "scripts": {
@@ -10,16 +10,19 @@
     "build": "babel -d dist src/**/*.jsx",
     "babel": "babel -d dist"
   },
-  "keywords": [],
+  "keywords": [
+    "jsx",
+    "babel",
+    "javascript"
+  ],
   "author": "Jake Cyr",
   "license": "ISC",
   "dependencies": {
     "@babel/cli": "^7.17.10",
     "@babel/core": "^7.17.12",
     "@babel/plugin-transform-react-jsx": "^7.17.12",
-    "cheerio": "^1.0.0-rc.10",
+    "cheerio": "^1.0.0-rc.11",
     "express": "^4.18.1",
-    "lodash": "^4.17.21",
     "node-watch": "^0.7.3",
     "socket.io": "^4.5.1",
     "socket.io-client": "^4.5.1"
